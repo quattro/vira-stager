@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: org:forester:1.005">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/forester/1.005/forester-1.005.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/org/forester/1.005/forester-1.005-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/forester/1.005/forester-1.005-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
