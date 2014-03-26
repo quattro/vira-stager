@@ -66,7 +66,7 @@
         <dependency>
             <groupId>org.biojava</groupId>
             <artifactId>biojava3-core</artifactId>
-            <version>3.0.5</version>
+            <version>3.0.7</version>
         </dependency>
         <dependency>
             <groupId>org.utgenome.thirdparty</groupId>
@@ -75,8 +75,18 @@
         </dependency>
         <dependency>
             <groupId>ch.ethz.bsse</groupId>
-            <artifactId>InDelFixer</artifactId>
+            <artifactId>indelfixer</artifactId>
             <version>1.1</version>
+        </dependency>
+        <dependency>
+            <groupId>edu.gsu.cs</groupId>
+            <artifactId>kgem</artifactId>
+            <version>0.4.2</version>
+        </dependency>
+        <dependency>
+            <groupId>edu.gsu.cs</groupId>
+            <artifactId>erif</artifactId>
+            <version>1.0.1b</version>
         </dependency>
     </dependencies>
 

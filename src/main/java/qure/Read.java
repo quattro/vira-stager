@@ -1,4 +1,5 @@
 package qure;
+
 import jaligner.Alignment;
 import jaligner.Sequence;
 import jaligner.SmithWatermanGotoh;
@@ -8,6 +9,8 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import net.sf.samtools.*;
+import org.apache.commons.lang3.StringUtils;
 import org.biojava3.core.sequence.DNASequence;
 
 public class Read {
@@ -19,8 +22,8 @@ public class Read {
     public Hashtable<String, String> SNP_hash;
     public Vector<SNP> SNP_list;
     public int mappingPosition;
-    public float start;
-    public float stop;
+    public int start;
+    public int stop;
     public float frequency;
     public float coverage;
     public float prevalence;
@@ -29,6 +32,7 @@ public class Read {
     public int insertions;
     public double pvalue;
     public double adjustedPvalue;
+    public SAMRecord record;
 
     public Read() {
         idx = -1;
@@ -50,32 +54,30 @@ public class Read {
         adjustedPvalue = -1;
     }
 
-    public Read(DNASequence rec) {
+    public Read(SAMRecord rec) {
         idx = -1;
-        name = rec.getOriginalHeader();
-        sequence = rec.getSequenceAsString();
+        name = rec.getReadName();
+        sequence = rec.getReadString();
         SNP_string = null;
         SNP_hash = null;
         SNP_list = null;
         mappingPosition = -1;
-        start = rec.getBioBegin();
-        stop = rec.getBioEnd();
+        // these are 1-based, so adjust
+        start = rec.getAlignmentStart() - 1;
+        stop = rec.getAlignmentEnd() - 1;
         frequency = -1;
         coverage = -1;
         prevalence = -1;
         score = -1;
         similarity = -1;
-
-        for (char c : this.sequence.toCharArray()) {
-            if (c == '-')
-                this.insertions++;
-        }
+        insertions = rec.getInferredInsertSize();
         pvalue = -1;
         adjustedPvalue = -1;
+        record = rec;
     }
 
     public void adjustSequence() {
-        this.sequence = this.sequence.toUpperCase().replaceAll("U","T").replaceAll("[^ACGTRYKMSWBDHVN]+","");
+        this.sequence = this.sequence.toUpperCase().replaceAll("U", "T").replaceAll("[^ACGTRYKMSWBDHVN]+", "");
     }
 
     public void correct(HashMap<Double, Base> baseSet) {
@@ -200,12 +202,49 @@ public class Read {
         SNP_list = sl;
         SNP_hash = sh;
         SNP_string = ss;
-        stop = start + a.getSequence1().length - (float) (insCount);
+        stop = start + a.getSequence1().length - (int) insCount;
         insertions = (int) (insCount);
     }
 
-    public void setSNP() {
+    public void setSNP(SAMRecord record, String reference) {
+        Vector<SNP> sl = new Vector();
+        Hashtable sh = new Hashtable();
+        String ss = "";
+        char[] query = this.sequence.toCharArray();
+        char[] refer = reference.toCharArray();
+        double ins = 0;
+        int insCount = 0;
+        for (AlignmentBlock block : record.getAlignmentBlocks()) {
+            // these are 1-based, so adjust accordingly
+            int readStart = block.getReadStart();
+            int refStart = block.getReferenceStart();
 
+            for (int i = 0; i < block.getLength(); i++) {
+                char readNT = query[i + readStart - 1];
+                char refNT = refer[i + refStart - 1];
+                int pos = refStart - readStart + i;
+
+                if (readNT != refNT && refNT != '-') {
+                    SNP snp = new SNP(pos, refNT, readNT);
+                    sl.add(snp);
+                    sh.put(refNT + "_" + pos, readNT + "");
+                    ss = ss + refNT + "_" + pos + "_" + readNT + ",";
+                    ins = pos;
+                } else if (readNT != refNT && refNT == '-') {
+                    SNP snp = new SNP(ins, refNT, readNT);
+                    sl.add(snp);
+                    sh.put(refNT + "_" + ins, readNT + "");
+                    ss = ss + refNT + "_" + ins + "_" + readNT + ",";
+                    insCount++;
+                } else {
+                    ins = pos;
+                }
+            }
+        }
+        SNP_list = sl;
+        SNP_hash = sh;
+        SNP_string = ss;
+        insertions = (insCount);
     }
 
     public void updateSNPFromHash() {
@@ -268,6 +307,7 @@ public class Read {
     public boolean spans(double sta, double sto) {
         return (start <= sta && stop >= sto);
     }
+
 
     public boolean overlaps(Read r) {
         return ((start < r.start && stop < r.stop && stop > r.start) || (r.start < start && r.stop < stop && r.stop > start));

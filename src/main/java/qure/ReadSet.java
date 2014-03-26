@@ -15,6 +15,7 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import net.sf.samtools.SAMRecord;
 import org.biojava3.core.sequence.DNASequence;
 
 
@@ -569,11 +570,16 @@ public class ReadSet
 		System.out.println("\r\n\taverage (st.dev) quasi-random score is "+Math.round(rndScoreAvg)+" ("+Math.round(rndScoreStd)+")");
 	}
 
-    public void setReads(Iterable<DNASequence> records) {
-        population = new Vector();
+    public void setPopulation(Iterable<SAMRecord> records, DNASequence reference) {
+        this.referenceGenome = reference.getSequenceAsString();
+        this.referenceGenomeName = reference.getOriginalHeader();
 
-        for (DNASequence record : records) {
+        population = new Vector();
+        alignStart = Double.MAX_VALUE;
+        alignStart = Double.MIN_VALUE;
+        for (SAMRecord record : records) {
             Read read = new Read(record);
+            read.setSNP(record, this.referenceGenome);
             population.add(read);
             if (read.start < alignStart)
                 alignStart = read.start;
@@ -729,7 +735,7 @@ public class ReadSet
 		System.out.println();
 	}
 	
-	public class alignThread implements Runnable 
+	public class AlignThread implements Runnable
 	{
 		Read read;
 		Hashtable genomeDictionary;
@@ -740,7 +746,8 @@ public class ReadSet
 		float gop;
 		float gep;
 		int kmer;
-		public alignThread (Read r, Hashtable gd, String rg, double al, double sl, Matrix m, float o, float e, int kappa)
+
+		public AlignThread(Read r, Hashtable gd, String rg, double al, double sl, Matrix m, float o, float e, int kappa)
 		{
 			read = r;
 			genomeDictionary = gd;
@@ -774,7 +781,7 @@ public class ReadSet
 				for (int j=0; j<n_proc; j++)
 				{
 					Read r = population.get(i);
-					Runnable runnable = new alignThread(r, genomeDictionary, referenceGenome, avgReadLength, stdReadLength, matrix, gop, gep, kmer);
+					Runnable runnable = new AlignThread(r, genomeDictionary, referenceGenome, avgReadLength, stdReadLength, matrix, gop, gep, kmer);
 					thread_list[j] = new Thread(runnable);
 					thread_list[j].start();
 					i++;
@@ -790,7 +797,7 @@ public class ReadSet
 					j=j%n_proc;
 				}
 				Read r = population.get(i);
-				Runnable runnable = new alignThread(r, genomeDictionary, referenceGenome, avgReadLength, stdReadLength, matrix, gop, gep, kmer);
+				Runnable runnable = new AlignThread(r, genomeDictionary, referenceGenome, avgReadLength, stdReadLength, matrix, gop, gep, kmer);
 				thread_list[j] = new Thread(runnable);
 				thread_list[j].start();
 				i++;

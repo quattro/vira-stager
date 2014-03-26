@@ -160,7 +160,14 @@ public class AmpliconSet
 		minAmpliconLength=Functions.min(al);
 		overallAmpliconLength=Functions.average(al);
 	}
-	
+
+    public double[] getStarts() {
+        return this.starts;
+    }
+    public double[] getStops() {
+        return this.stops;
+    }
+
 	public void setStats(double [] avgReadCover, double [] avgOverlapDiversity, double [] avgOverallOverlapDiversity, double [] avgNumNonZeroOverlapDiversity, double [] avgOverallReadCoverage, double [] avgNumOverlaps, double [] avgMinOverlapLength, double [] avgOverallOverlapLength, double [] avgMinAmpliconLength, double [] avgOverallAmpliconLength)
 	{
 		minReadCoverageProbability=0;
