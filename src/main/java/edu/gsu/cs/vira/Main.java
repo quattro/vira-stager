@@ -1,25 +1,19 @@
 package edu.gsu.cs.vira;
 
 import ch.ethz.bsse.indelfixer.minimal.Start;
-import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMTextWriter;
 import org.biojava3.core.sequence.DNASequence;
 import org.biojava3.core.sequence.io.FastaReaderHelper;
-import org.biojava3.core.sequence.io.FastaWriterHelper;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import qure.AmpliconSet;
-import qure.Read;
 import qure.ReadSet;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 
 public class Main {
 
@@ -29,14 +23,17 @@ public class Main {
     @Option(name = "-g")
     private String reference;
 
+    @Option(name = "-k")
+    private int numHap = 20;
+
     @Option(name = "-o", usage = "Path to the output directory (default: current directory)")
-    private String output;
+    private String output = "./";
 
     @Option(name = "-n", usage = "Number of iterations for interval finding")
-    private int iterations;
+    private int iterations = 1000;
 
     @Option(name = "-p", usage = "Number of processors to use")
-    private int threads;
+    private int threads = Runtime.getRuntime().availableProcessors();
 
     private static final String IDF_OUTPUT = "reads.sam";
 
@@ -108,13 +105,14 @@ public class Main {
                 edu.gsu.cs.align.exec.Main.main(erifArgs);
 
                 String correctedFASTAPathName = ampDirPathName + File.separator + "aligned_reads.fas";
-                String[] kgemArgs = new String[]{correctedFASTAPathName, "20", "-o", ampDirPath.toString()};
+                String[] kgemArgs = new String[]{correctedFASTAPathName, Integer.toString(numHap),
+                        "-o", ampDirPathName + File.separator + "corrected.fa", "-r"};
                 edu.gsu.cs.kgem.exec.Main.main(kgemArgs);
             }
 
 
         } catch (CmdLineException e) {
-
+           parser.printUsage(System.err);
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(-1);
@@ -123,4 +121,7 @@ public class Main {
         System.exit(0);
     }
 
+    static void printHelp() {
+        System.out.println("");
+    }
 }

@@ -75,18 +75,18 @@
         </dependency>
         <dependency>
             <groupId>ch.ethz.bsse</groupId>
-            <artifactId>indelfixer</artifactId>
+            <artifactId>InDelFixer</artifactId>
             <version>1.1</version>
         </dependency>
         <dependency>
             <groupId>edu.gsu.cs</groupId>
             <artifactId>kgem</artifactId>
-            <version>0.4.2</version>
+            <version>0.6</version>
         </dependency>
         <dependency>
             <groupId>edu.gsu.cs</groupId>
             <artifactId>erif</artifactId>
-            <version>1.0.1b</version>
+            <version>1.1</version>
         </dependency>
     </dependencies>
 
