@@ -3,14 +3,20 @@ package edu.gsu.cs.vira;
 import ch.ethz.bsse.indelfixer.minimal.Start;
 import net.sf.samtools.SAMFileReader;
 import org.biojava3.core.sequence.DNASequence;
-import org.biojava3.core.sequence.io.FastaReaderHelper;
+import org.biojava3.core.sequence.compound.AmbiguityDNACompoundSet;
+import org.biojava3.core.sequence.compound.DNACompoundSet;
+import org.biojava3.core.sequence.compound.NucleotideCompound;
+import org.biojava3.core.sequence.io.*;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import qure.AmpliconSet;
 import qure.ReadSet;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -59,16 +65,32 @@ public class Main {
             Start idf = new Start();
             String[] idfArgs;
             if (this.output.isEmpty()) {
-                idfArgs = new String[]{"-i", this.input, "-g", this.reference,  "-rmDel", "-454"};
+                idfArgs = new String[]{"-i", this.input, "-g", this.reference, "-454"};
             } else {
-                idfArgs = new String[]{"-i", this.input, "-g", this.reference, "-o", this.output,  "-rmDel", "-454"};
+                idfArgs = new String[]{"-i", this.input, "-g", this.reference, "-o", this.output, "-454"};
             }
             idf.doMain(idfArgs);
             String idfOutputPath = this.output.isEmpty() ? IDF_OUTPUT : this.output + File.separator + IDF_OUTPUT;
 
             File samFile = new File(idfOutputPath);
             File refFile = new File(this.reference);
-            DNASequence reference = FastaReaderHelper.readFastaDNASequence(refFile, false).values().iterator().next();
+            // Use this instead of the helper. This way we can parse ambiguous base-codes
+            FastaReader<DNASequence, NucleotideCompound > fastaProxyReader =
+                    new FastaReader<>(
+                            refFile,
+                            new GenericFastaHeaderParser<DNASequence, NucleotideCompound>(),
+                            new FileProxyDNASequenceCreator(
+                                    refFile,
+                                    AmbiguityDNACompoundSet.getDNACompoundSet(),
+                                    new FastaSequenceParser()
+                            )
+                    );
+            DNASequence reference = null;
+            for (DNASequence seq : fastaProxyReader.process().values()) {
+                reference = seq;
+                break;
+            }
+
             SAMFileReader samReader = new SAMFileReader(samFile);
 
             // Use the QuRe random-algorithm to find good intervals on IDF alignment
@@ -82,11 +104,13 @@ public class Main {
 
             double[] starts = intervals.getStarts();
             double[] stops = intervals.getStops();
-
+            BufferedWriter intervalWriter = new BufferedWriter(new FileWriter("intervals.txt"));
             // Use kGEM on each interval to correct reads.
             for (int i = 0; i < starts.length; i++) {
                 int start = (int) starts[i];
                 int stop = (int) stops[i];
+                intervalWriter.write(start + "," + stop);
+                intervalWriter.newLine();
 
                 String ampDirPathName = this.output.isEmpty() ? "amplicon" + i : this.output + File.separator + "amplicon" + i;
                 Path ampDirPath = Paths.get(ampDirPathName);
@@ -106,10 +130,11 @@ public class Main {
 
                 String correctedFASTAPathName = ampDirPathName + File.separator + "aligned_reads.fas";
                 String[] kgemArgs = new String[]{correctedFASTAPathName, Integer.toString(numHap),
-                        "-o", ampDirPathName + File.separator + "corrected.fa", "-r"};
+                        "-o", ampDirPathName + File.separator + "corrected.fa", "-r",
+                        "-t", "0", "-d", "1"};
                 edu.gsu.cs.kgem.exec.Main.main(kgemArgs);
             }
-
+            intervalWriter.close();
 
         } catch (CmdLineException e) {
            parser.printUsage(System.err);
@@ -119,9 +144,5 @@ public class Main {
 
         }
         System.exit(0);
-    }
-
-    static void printHelp() {
-        System.out.println("");
     }
 }
