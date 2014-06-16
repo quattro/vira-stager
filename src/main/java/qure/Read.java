@@ -80,12 +80,12 @@ public class Read {
         this.sequence = this.sequence.toUpperCase().replaceAll("U", "T").replaceAll("[^ACGTRYKMSWBDHVN]+", "");
     }
 
-    public void correct(HashMap<Double, Base> baseSet) {
+    public void correct(HashMap<Integer, Base> baseSet) {
         Read r = this;
         Hashtable<String, String> newSNPHash = new Hashtable();
-        Object[] key = baseSet.keySet().toArray();
-        for (int i = 0; i < key.length; i++) {
-            Base b = baseSet.get(key[i]);
+
+        for (Integer aKey : baseSet.keySet()) {
+            Base b = baseSet.get(aKey);
             if (r.SNP_hash.get(b.reference + "_" + b.position) != null) {
                 if (r.SNP_hash.get(b.reference + "_" + b.position).equals("A") && b.A > 0)
                     newSNPHash.put(b.reference + "_" + b.position, "A");
